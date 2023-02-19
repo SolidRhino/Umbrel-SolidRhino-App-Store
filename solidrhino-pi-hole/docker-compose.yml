@@ -1,0 +1,32 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: pi-hole_server_1
+      APP_PORT: 80
+      PROXY_AUTH_ADD: "false"
+  
+  server:
+    image: pluim003/pihole-unbound:2023.02.2
+    # Pi-hole doesn't currently support running as non-root
+    # https://github.com/pi-hole/docker-pi-hole/issues/685
+    # user: "1000:1000"
+    restart: on-failure
+    ports:
+      - 53:53/tcp
+      - 53:53/udp
+      - 67:67/udp
+    volumes:
+      - ${APP_DATA_DIR}/data/pihole:/etc/pihole:rw
+      - ${APP_DATA_DIR}/data/dnsmasq:/etc/dnsmasq.d:rw
+      - ${APP_DATA_DIR}/data/unbound:/etc/unbound:rw
+      - ./resolv.conf:/etc/resolv.conf
+    environment:
+      - VIRTUAL_HOST=${APP_DOMAIN}
+      - WEBPASSWORD=${APP_PASSWORD}
+      - PIHOLE_DNS_=127.0.0.1#5335 # Hardcoded to our Unbound server
+      - DNSSEC="true"
+      - DNSMASQ_LISTENING=single
+    cap_add:
+      - NET_ADMIN
